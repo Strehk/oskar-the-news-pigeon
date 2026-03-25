@@ -158,16 +158,27 @@ def _parse_tool_result(tool_input: dict, items: list[FeedItem]) -> Digest:
     """Parse the tool call result into a Digest."""
     stories = []
     for story_data in tool_input.get("stories", []):
+        if not isinstance(story_data, dict):
+            log.warning("curator.skipping_invalid_story", data=str(story_data)[:100])
+            continue
+
         # Resolve source indices to actual source info
         sources = []
-        for idx in story_data.get("source_indices", []):
-            if 0 <= idx < len(items):
-                sources.append({"name": items[idx].source, "url": items[idx].link})
+        source_indices = story_data.get("source_indices", [])
+        if isinstance(source_indices, list):
+            for idx in source_indices:
+                if isinstance(idx, int) and 0 <= idx < len(items):
+                    sources.append({"name": items[idx].source, "url": items[idx].link})
+
+        headline = story_data.get("headline", "")
+        summary = story_data.get("summary", "")
+        if not headline:
+            continue
 
         stories.append(
             DigestStory(
-                headline=story_data["headline"],
-                summary=story_data["summary"],
+                headline=headline,
+                summary=summary,
                 sources=sources,
                 category=story_data.get("category", "inland"),
                 emoji=story_data.get("emoji", "📰"),
