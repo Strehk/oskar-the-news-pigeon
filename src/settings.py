@@ -24,7 +24,10 @@ class Settings(BaseSettings):
         '{"name":"FAZ","url":"https://www.faz.net/rss/aktuell/politik/","priority":2,"category":"inland"},'
         '{"name":"Sueddeutsche","url":"https://rss.sueddeutsche.de/rss/Politik","priority":2,"category":"inland"},'
         '{"name":"BBC World","url":"https://feeds.bbci.co.uk/news/world/rss.xml","priority":2,"category":"international"},'
-        '{"name":"Guardian","url":"https://www.theguardian.com/world/rss","priority":2,"category":"international"}'
+        '{"name":"Guardian","url":"https://www.theguardian.com/world/rss","priority":2,"category":"international"},'
+        '{"name":"Good News","url":"https://goodnews.eu/feed/","priority":1,"category":"positive"},'
+        '{"name":"Perspective Daily","url":"https://perspective-daily.de/article/feed/","priority":1,"category":"positive"},'
+        '{"name":"Good News Network","url":"https://www.goodnewsnetwork.org/feed/","priority":2,"category":"positive"}'
         ']',
         description="JSON array of feed configs",
     )
@@ -43,6 +46,8 @@ class Settings(BaseSettings):
     target_stories_min: int = Field(default=5, ge=3, le=10)
     target_stories_max: int = Field(default=7, ge=5, le=15)
     dedup_threshold: float = Field(default=0.7, ge=0.5, le=1.0)
+    target_positive_min: int = Field(default=1, ge=0, le=4)
+    target_positive_max: int = Field(default=4, ge=1, le=10)
 
     # === RUNTIME ===
     log_level: str = Field(default="INFO", pattern="^(DEBUG|INFO|WARNING|ERROR)$")

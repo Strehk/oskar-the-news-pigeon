@@ -51,18 +51,25 @@ def _deduplicate(items: list[FeedItem], threshold: float) -> list[FeedItem]:
 
 
 def preprocess(items: list[FeedItem], settings: Settings) -> list[FeedItem]:
-    """Filter, deduplicate, sort, and cap the item list."""
-    # 1. Filter by age
-    items = _filter_by_age(items, settings.max_age_hours)
+    """Filter, deduplicate, sort, and cap the item list.
 
-    # 2. Deduplicate
-    items = _deduplicate(items, settings.dedup_threshold)
+    Regular and positive items are processed separately to ensure
+    positive stories aren't crowded out by the news cycle.
+    """
+    # Split into regular and positive pools
+    regular = [i for i in items if i.category != "positive"]
+    positive = [i for i in items if i.category == "positive"]
 
-    # 3. Sort: newest first, then by priority (lower = better) as tiebreaker
-    items.sort(key=lambda x: (-x.published.timestamp(), x.source_priority))
+    # Process each pool independently
+    for pool_name, pool in [("regular", regular), ("positive", positive)]:
+        pool[:] = _filter_by_age(pool, settings.max_age_hours)
+        pool[:] = _deduplicate(pool, settings.dedup_threshold)
+        pool.sort(key=lambda x: (-x.published.timestamp(), x.source_priority))
 
-    # 4. Cap
-    items = items[: settings.max_items_to_llm]
+    # Cap each pool
+    regular = regular[: settings.max_items_to_llm]
+    positive = positive[:10]  # Don't need many positive candidates
 
-    log.info("preprocessor.done", items=len(items))
-    return items
+    combined = regular + positive
+    log.info("preprocessor.done", regular=len(regular), positive=len(positive))
+    return combined

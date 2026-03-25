@@ -18,6 +18,9 @@ Dein Stil ist:
 - Kompakt und informativ
 - Sachlich, aber nicht langweilig
 - Deutsche Sprache, klare Formulierungen
+
+Du sorgst auch dafür, dass jeder Digest mit guten Nachrichten endet — \
+denn die Welt ist nicht nur schlecht.
 """
 
 PUBLISH_DIGEST_TOOL = {
@@ -45,7 +48,7 @@ PUBLISH_DIGEST_TOOL = {
                         },
                         "category": {
                             "type": "string",
-                            "enum": ["inland", "international"],
+                            "enum": ["inland", "international", "positive"],
                         },
                         "source_indices": {
                             "type": "array",
@@ -67,24 +70,29 @@ PUBLISH_DIGEST_TOOL = {
 
 
 def _build_user_message(items: list[FeedItem], settings: Settings) -> str:
+    regular = [i for i in items if i.category != "positive"]
+    positive = [i for i in items if i.category == "positive"]
+
     lines = [
-        f"Analysiere diese {len(items)} Meldungen und erstelle einen Digest.",
+        f"Analysiere diese Meldungen und erstelle einen Digest.",
         "",
         "AUFGABEN:",
-        f"1. Wähle die {settings.target_stories_min}-{settings.target_stories_max} wichtigsten Stories",
+        f"1. Wähle die {settings.target_stories_min}-{settings.target_stories_max} wichtigsten Nachrichten-Stories",
         "2. Gruppiere zusammengehörige Meldungen (gleiches Thema, verschiedene Quellen)",
         "3. Schreibe für jede Story eine knappe Zusammenfassung (1-2 Sätze)",
-        '4. Kategorisiere: "inland" oder "international"',
+        '4. Kategorisiere Nachrichten als "inland" oder "international"',
+        f'5. Wähle zusätzlich {settings.target_positive_min}-{settings.target_positive_max} positive Stories aus der "GUTE NACHRICHTEN" Sektion',
+        '   Diese bekommen die Kategorie "positive"',
         "",
         "PRIORITÄTEN:",
         "- Quellen mit Priorität 1 sind Top-Quellen — bevorzuge diese",
         "- Politische Relevanz > Sensationalismus",
         "- Aktualität zählt",
         "",
-        "MELDUNGEN:",
+        "NACHRICHTEN:",
     ]
 
-    for i, item in enumerate(items):
+    for i, item in enumerate(regular):
         lines.append(
             f"[{i}] [{item.source} | Prio {item.source_priority} | {item.category}] "
             f"{item.title}"
@@ -94,14 +102,32 @@ def _build_user_message(items: list[FeedItem], settings: Settings) -> str:
         lines.append(f"    URL: {item.link}")
         lines.append("")
 
+    if positive:
+        offset = len(regular)
+        lines.append("")
+        lines.append("GUTE NACHRICHTEN (wähle daraus für die positive Sektion):")
+        lines.append("")
+        for i, item in enumerate(positive):
+            idx = offset + i
+            lines.append(
+                f"[{idx}] [{item.source} | Prio {item.source_priority}] "
+                f"{item.title}"
+            )
+            if item.description:
+                lines.append(f"    {item.description[:200]}")
+            lines.append(f"    URL: {item.link}")
+            lines.append("")
+
     return "\n".join(lines)
 
 
 def _build_fallback_digest(items: list[FeedItem]) -> Digest:
     """Build a basic digest without LLM when all retries fail."""
     log.warning("curator.using_fallback")
+    regular = [i for i in items if i.category != "positive"]
+    positive = [i for i in items if i.category == "positive"]
     stories = []
-    for item in items[:7]:
+    for item in regular[:7]:
         stories.append(
             DigestStory(
                 headline=item.title,
@@ -109,6 +135,16 @@ def _build_fallback_digest(items: list[FeedItem]) -> Digest:
                 sources=[{"name": item.source, "url": item.link}],
                 category=item.category,
                 emoji="📰",
+            )
+        )
+    for item in positive[:2]:
+        stories.append(
+            DigestStory(
+                headline=item.title,
+                summary=item.description[:200] if item.description else "",
+                sources=[{"name": item.source, "url": item.link}],
+                category="positive",
+                emoji="🌟",
             )
         )
     return Digest(

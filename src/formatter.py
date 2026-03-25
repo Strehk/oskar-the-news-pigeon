@@ -48,6 +48,7 @@ def format_digest(digest: Digest) -> list[str]:
     # Group stories by category
     inland = [s for s in digest.stories if s.category == "inland"]
     international = [s for s in digest.stories if s.category == "international"]
+    positive = [s for s in digest.stories if s.category == "positive"]
 
     sections: list[str] = []
 
@@ -60,6 +61,12 @@ def format_digest(digest: Digest) -> list[str]:
     if international:
         section_lines = [f"\n\n🌍 *International*\n"]
         for story in international:
+            section_lines.append(_format_story(story))
+        sections.append("\n\n".join(section_lines))
+
+    if positive:
+        section_lines = [f"\n\n🌟 *Gute Nachrichten*\n"]
+        for story in positive:
             section_lines.append(_format_story(story))
         sections.append("\n\n".join(section_lines))
 
