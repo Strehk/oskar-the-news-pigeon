@@ -1,0 +1,10 @@
+services:
+  oskar:
+    build: .
+    container_name: oskar-news-pigeon
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - TZ=Europe/Berlin
+    volumes:
+      - ./data:/app/data
