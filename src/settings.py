@@ -9,16 +9,23 @@ from .models import FeedSource
 class Settings(BaseSettings):
     """All app settings, validated at startup from environment variables."""
 
-    # === REQUIRED ===
-    telegram_bot_token: str = Field(..., description="Telegram Bot Token")
+    # === REQUIRED (for full pipeline, optional for --fetch-only) ===
+    telegram_bot_token: str = Field(default="", description="Telegram Bot Token")
     telegram_channel_id: str = Field(
         default="", description="Channel (@name or -100xxx), optional if using subscriptions"
     )
-    anthropic_api_key: str = Field(..., description="Anthropic API Key")
+    anthropic_api_key: str = Field(default="", description="Anthropic API Key")
 
     # === FEEDS (JSON Array) ===
     feeds: str = Field(
-        ...,
+        default='['
+        '{"name":"Tagesspiegel","url":"https://www.tagesspiegel.de/contentexport/feed/politik","priority":1,"category":"inland"},'
+        '{"name":"Zeit","url":"https://newsfeed.zeit.de/politik/index","priority":1,"category":"inland"},'
+        '{"name":"FAZ","url":"https://www.faz.net/rss/aktuell/politik/","priority":2,"category":"inland"},'
+        '{"name":"Sueddeutsche","url":"https://rss.sueddeutsche.de/rss/Politik","priority":2,"category":"inland"},'
+        '{"name":"BBC World","url":"https://feeds.bbci.co.uk/news/world/rss.xml","priority":2,"category":"international"},'
+        '{"name":"Guardian","url":"https://www.theguardian.com/world/rss","priority":2,"category":"international"}'
+        ']',
         description="JSON array of feed configs",
     )
 
@@ -64,4 +71,5 @@ class Settings(BaseSettings):
     model_config = {
         "env_prefix": "",
         "case_sensitive": False,
+        "env_file": ".env",
     }

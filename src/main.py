@@ -124,16 +124,35 @@ def main() -> None:
     if args.dry_run:
         settings = settings.model_copy(update={"dry_run": True})
 
+    # fetch-only needs only FEEDS
+    if args.fetch_only:
+        asyncio.run(run_pipeline(settings, fetch_only=True))
+        return
+
+    # Everything else needs API keys
+    missing = []
+    if not settings.anthropic_api_key:
+        missing.append("ANTHROPIC_API_KEY")
+    if not settings.telegram_bot_token:
+        missing.append("TELEGRAM_BOT_TOKEN")
+    if missing:
+        log.error("config.missing_required", vars=missing)
+        raise SystemExit(1)
+
     # Init subscriber DB
     db.init_db()
 
-    # One-shot modes
-    if args.now or args.fetch_only:
-        asyncio.run(run_pipeline(settings, fetch_only=args.fetch_only))
+    # One-shot mode
+    if args.now:
+        asyncio.run(run_pipeline(settings))
         return
 
     # Scheduled mode with bot polling
     log.info("main.starting", mode="scheduled", cron=settings.schedule_cron)
+
+    # Python 3.12+ / 3.14 no longer auto-creates an event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     # Build the telegram Application
     app = Application.builder().token(settings.telegram_bot_token).build()
