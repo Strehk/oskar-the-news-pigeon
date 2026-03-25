@@ -58,8 +58,8 @@ def preprocess(items: list[FeedItem], settings: Settings) -> list[FeedItem]:
     # 2. Deduplicate
     items = _deduplicate(items, settings.dedup_threshold)
 
-    # 3. Sort: priority first (lower = better), then newest first
-    items.sort(key=lambda x: (x.source_priority, -x.published.timestamp()))
+    # 3. Sort: newest first, then by priority (lower = better) as tiebreaker
+    items.sort(key=lambda x: (-x.published.timestamp(), x.source_priority))
 
     # 4. Cap
     items = items[: settings.max_items_to_llm]
