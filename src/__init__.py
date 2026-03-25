@@ -25,7 +25,13 @@ def setup_logging(log_level: str = "INFO") -> None:
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
 
+    level = getattr(logging, log_level.upper(), logging.INFO)
+
     root = logging.getLogger()
     root.handlers.clear()
     root.addHandler(handler)
-    root.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+    root.setLevel(level)
+
+    # Silence noisy third-party loggers — only show warnings+
+    for noisy in ("httpx", "httpcore", "telegram", "apscheduler"):
+        logging.getLogger(noisy).setLevel(max(level, logging.WARNING))
