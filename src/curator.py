@@ -156,8 +156,22 @@ def _build_fallback_digest(items: list[FeedItem]) -> Digest:
 
 def _parse_tool_result(tool_input: dict, items: list[FeedItem]) -> Digest:
     """Parse the tool call result into a Digest."""
+    raw_stories = tool_input.get("stories", [])
+
+    # Handle case where Claude returns stories as a JSON string instead of a list
+    if isinstance(raw_stories, str):
+        try:
+            raw_stories = json.loads(raw_stories)
+        except (json.JSONDecodeError, TypeError):
+            log.warning("curator.stories_not_parseable", data=raw_stories[:200])
+            raw_stories = []
+
+    if not isinstance(raw_stories, list):
+        log.warning("curator.stories_not_list", type=type(raw_stories).__name__)
+        raw_stories = []
+
     stories = []
-    for story_data in tool_input.get("stories", []):
+    for story_data in raw_stories:
         if not isinstance(story_data, dict):
             log.warning("curator.skipping_invalid_story", data=str(story_data)[:100])
             continue
