@@ -99,7 +99,17 @@ pip install -e .
 python -m src.main
 ```
 
-#### Docker
+#### Docker (pre-built image)
+
+```bash
+docker run -d --restart unless-stopped \
+  -e TELEGRAM_BOT_TOKEN=your-token \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -v ./data:/app/data \
+  ghcr.io/strehk/oskar-the-news-pigeon:latest
+```
+
+#### Docker (build locally)
 
 ```bash
 docker compose up -d
