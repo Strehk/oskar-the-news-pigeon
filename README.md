@@ -1,8 +1,16 @@
+<p align="center">
+  <img src="assets/oskar-portrait.png" alt="Oskar the News Pigeon" width="200">
+</p>
+
 # Oskar the News Pigeon 🐦
 
 A daily news digest bot for Telegram. Oskar fetches RSS feeds from German and international sources, deduplicates and ranks them, uses a single Claude API call to curate and summarize the top stories, and delivers a formatted German-language digest to all subscribers.
 
 Users subscribe by messaging the bot `/start` — no channels or groups needed.
+
+<p align="center">
+  <img src="assets/oskar-flying.png" alt="Oskar delivering the news" width="600">
+</p>
 
 ```
 📰 News Digest — 25. März 2026
