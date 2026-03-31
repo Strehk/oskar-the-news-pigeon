@@ -5,9 +5,6 @@ from .models import Digest, DigestStory
 # Characters that must be escaped in Telegram MarkdownV2
 _ESCAPE_CHARS = re.compile(r"([_*\[\]()~`>#+\-=|{}.!])")
 
-# Max Telegram message length
-MAX_MESSAGE_LENGTH = 4096
-
 
 def _escape(text: str) -> str:
     """Escape special characters for Telegram MarkdownV2."""
@@ -50,45 +47,17 @@ def format_digest(digest: Digest) -> list[str]:
     international = [s for s in digest.stories if s.category == "international"]
     positive = [s for s in digest.stories if s.category == "positive"]
 
-    sections: list[str] = []
-
-    if inland:
-        section_lines = [f"\n\n🇩🇪 *Inland*\n"]
-        for story in inland:
-            section_lines.append(_format_story(story))
-        sections.append("\n\n".join(section_lines))
-
-    if international:
-        section_lines = [f"\n\n🌍 *International*\n"]
-        for story in international:
-            section_lines.append(_format_story(story))
-        sections.append("\n\n".join(section_lines))
-
-    if positive:
-        section_lines = [f"\n\n🌟 *Gute Nachrichten*\n"]
-        for story in positive:
-            section_lines.append(_format_story(story))
-        sections.append("\n\n".join(section_lines))
-
-    footer = f"\n\n—\n_Zugestellt von Oskar_ 🐦"
-
-    # Try to fit everything in one message
-    full_message = header + "".join(sections) + footer
-
-    if len(full_message) <= MAX_MESSAGE_LENGTH:
-        return [full_message]
-
-    # Split into multiple messages if needed
     messages: list[str] = [header]
-    current = header
 
-    for section in sections:
-        if len(current) + len(section) + len(footer) <= MAX_MESSAGE_LENGTH:
-            current += section
-        else:
-            messages[-1] = current
-            current = section
-            messages.append(current)
+    for label, stories in [("🇩🇪 *Inland*", inland), ("🌍 *International*", international), ("🌟 *Gute Nachrichten*", positive)]:
+        if not stories:
+            continue
+        section_lines = [label, ""]
+        for story in stories:
+            section_lines.append(_format_story(story))
+            section_lines.append("")
+        messages.append("\n".join(section_lines).strip())
 
-    messages[-1] = current + footer
+    messages[-1] += f"\n\n—\n_Zugestellt von Oskar_ 🐦"
+
     return messages

@@ -47,8 +47,10 @@ async def _send_with_retry(bot: Bot, chat_id: int, text: str) -> bool:
 async def send_digest(messages: list[str], settings: Settings) -> None:
     """Send digest messages to all subscribers (and optional channel)."""
     if settings.dry_run:
-        for msg in messages:
+        for i, msg in enumerate(messages, 1):
+            print(f"--- message {i}/{len(messages)} ---")
             print(msg)
+            print()
         log.info("sender.dry_run_complete")
         return
 
