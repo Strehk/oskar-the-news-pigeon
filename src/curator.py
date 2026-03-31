@@ -149,7 +149,12 @@ def _build_fallback_digest(items: list[FeedItem]) -> Digest:
         )
     return Digest(
         date=datetime.now(timezone.utc).strftime("%d. %B %Y"),
-        greeting="Guten Morgen! Hier sind die heutigen Nachrichten.",
+        greeting=(
+            "Guten Morgen! Oskar hatte heute etwas Schluckauf beim Sortieren "
+            "der Nachrichten — die Redaktionsmaschine wollte nicht so recht. "
+            "Hier trotzdem die wichtigsten Schlagzeilen, nur diesmal ohne "
+            "Oskars persönliche Note. Morgen bin ich wieder fit!"
+        ),
         stories=stories,
     )
 
@@ -230,15 +235,30 @@ async def curate(items: list[FeedItem], settings: Settings) -> Digest:
                 tool_choice={"type": "tool", "name": "publish_digest"},
             )
 
-            # Extract tool use result
-            for block in response.content:
-                if block.type == "tool_use" and block.name == "publish_digest":
-                    digest = _parse_tool_result(block.input, items)
-                    log.info("curator.done", stories=len(digest.stories), attempt=attempt + 1)
-                    return digest
+            # Check for truncated response
+            if response.stop_reason == "max_tokens":
+                log.warning("curator.truncated", attempt=attempt + 1)
+                last_error = "Response truncated by max_tokens"
+                continue
 
-            log.warning("curator.no_tool_call", attempt=attempt + 1)
-            last_error = "No tool call in response"
+            # Extract tool use result
+            tool_block = next(
+                (b for b in response.content if b.type == "tool_use" and b.name == "publish_digest"),
+                None,
+            )
+            if not tool_block:
+                log.warning("curator.no_tool_call", attempt=attempt + 1)
+                last_error = "No tool call in response"
+                continue
+
+            digest = _parse_tool_result(tool_block.input, items)
+            if not digest.stories:
+                log.warning("curator.empty_stories", attempt=attempt + 1)
+                last_error = "Parsed digest contained no stories"
+                continue
+
+            log.info("curator.done", stories=len(digest.stories), attempt=attempt + 1)
+            return digest
 
         except (anthropic.APIError, anthropic.APITimeoutError) as e:
             last_error = e
